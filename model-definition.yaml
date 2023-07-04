@@ -1,0 +1,62 @@
+kind: M
+api_version: v1beta2
+metadata:
+  display_name: PYRAMID <model> read met office
+  name: pyramid-read-met-office
+  publisher: PYRAMID
+  summary: PYRAMID DAFNI model for reading radar rainfall from CEDA
+  description: >
+    This model reads radar rainfall data from the Met Office CEDA ftp URL ftp://ftp.ceda.ac.uk
+    
+    CEDA: https://www.ceda.ac.uk/.
+
+    Model repository: https://github.com/NCL-PYRAMID/PYRAMID-read-met-office
+spec:
+  inputs:
+    parameters:
+      - name: START_YEAR
+        title: Start Year
+        description: The year at which the Model execution should start.
+        type: integer
+        default: 2015
+        min: 2010
+        max: 2020
+        required: true
+
+      - name: END_YEAR
+        title: End Year
+        description: The year at which the Model execution should stop.
+        type: integer
+        default: 2025
+        min: 2020
+        max: 2030
+        required: true
+
+      - name: START_TIME
+        title: Start Time
+        description: Start time for data gathering
+        type: string
+        default: "2016-09-07T15:00:00Z"
+        required: true
+
+      - name: LIMIT
+        title: Limit
+        description: Limit of data gathering
+        type: string
+        default: "500"
+        required: true
+
+      - name: READ_MODE
+        title: Model reading mode
+        description: >
+        This parameter dictates whether the model should read from the API, or from a pre-prepared testing data set.
+        type: boolean
+        default: true
+        required: false
+
+  outputs:
+    datasets:
+      - name: PYRAMID <dataset> Met Office Rainfall Radar Data
+        type: txt
+        description: >
+        Rainfall radar data read from Met Office CEDA ftp://ftp.ceda.ac.uk
