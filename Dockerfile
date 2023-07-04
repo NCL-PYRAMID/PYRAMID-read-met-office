@@ -44,7 +44,9 @@ COPY environment.yml .
 RUN conda env create -f environment.yml
 SHELL ["conda", "run", "-n", "read-met-office", "--no-capture-output", "/bin/bash", "-c"]
 
-COPY read_met.py ./
+COPY read_met_office.py ./
+COPY write_output_metadata.py ./
+COPY run.sh ./
 #COPY requirements.txt ./
 
 #RUN python -m pip install --upgrade pip
