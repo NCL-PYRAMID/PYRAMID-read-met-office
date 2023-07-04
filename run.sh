@@ -2,8 +2,7 @@ RUNNING_PLATFORM="${READ_EXTERNAL_ENV:-shell}"
 
 echo "Running in $RUNNING_PLATFORM"
 
-python -u reading_in_data.py
-python -u merging_rainfall.py
+python -u read_met_office.py
 python -u write_output_metadata.py
 
 if [ "$RUNNING_PLATFORM" == "docker" ];

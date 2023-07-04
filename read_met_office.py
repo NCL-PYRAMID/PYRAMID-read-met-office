@@ -6,7 +6,6 @@ import os
 import numpy as np
 import tempfile
 import h5py
-import shapefile
 import pandas as pd
 import os
 import ftplib
