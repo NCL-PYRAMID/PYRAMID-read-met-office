@@ -99,30 +99,23 @@ sudo rm -r data
 
 ### Production
 #### Manual upload to DAFNI
-The model is containerised using Docker, and the image is _tar_'ed and _zip_'ed for uploading to DAFNI. Use the following commands in a *nix shell to accomplish this. Two separate models need to be build, `prepare` and `run`.
+The model is containerised using Docker, and the image is _tar_'ed and _zip_'ed for uploading to DAFNI. Use the following commands in a *nix shell to accomplish this.
 
 ```
-docker build . -t pyramid-shetran-prepare -f Dockerfile-prepare
-docker save -o pyramid-shetran-prepare.tar pyramid-shetran-prepare:latest
-gzip pyramid-shetran-prepare.tar
+docker build . -t pyramid-read-met-office -f Dockerfile
+docker save -o pyramid-read-met-office.tar pyramid-read-met-office:latest
+gzip pyramid-read-met-office.tar
 ```
 
-```
-docker build . -t pyramid-shetran-run -f Dockerfile-run
-docker save -o pyramid-shetran-run.tar pyramid-shetran-run:latest
-gzip pyramid-shetran-run.tar
-```
+The `pyramid-read-met-office.tar.gz` Docker image and accompanying DAFNI model definition file `model-definition.yml` should be uploaded as new DAFNI models using the "Add model" facility at [https://facility.secure.dafni.rl.ac.uk/models/](https://facility.secure.dafni.rl.ac.uk/models/). Alternatively, the existing model can be updated manually in DAFNI by locating the relevant model through the DAFNI UI, selecting "Edit Model", uploading a new image and / or metadata file, and incrementing the semantic version number in the "Version Message" field appropriately.
 
-The `pyramid-shetran-prepare.tar.gz` and `pyramid-shetran-prepare.tar.gz` Docker images and accompanying DAFNI model definition files (`model-definition-prepare.yml` and `model-definition-prepare.yml`) can be uploaded as new models using the "Add model" facility at [https://facility.secure.dafni.rl.ac.uk/models/](https://facility.secure.dafni.rl.ac.uk/models/). Alternatively, the existing SHETRAN Prepare and SHETRAN Run models can be updated manually in DAFNI by locating the relevant model through the DAFNI UI, selecting "Edit Model", uploading a new image and / or metadata file, and incrementing the semantic version number in the "Version Message" field appropriately.
-
-As of 19/06/2023 the SHETRAN DAFNI parent model UUIDs are
+As of 05/07/2023 the read-met-office DAFNI parent model UUID is
 | Model | UUID |
 | --- | --- |
-| SHETRAN Prepare | eb77ac58-c528-437c-ab45-5ba6d464d45b |
-| SHETRAN Run | 6756ebb2-b1f6-41cf-87e1-58533583801d |
+| read-met-office | (TBC)) |
 
 #### CI/CD with GitHub Actions
-The SHETRAN models can be deployed to DAFNi using GitHub Actions. The relevant workflows are built into the SHETRAN model repository and use the [DAFNI Model Uploader Action](https://github.com/dafnifacility/dafni-model-uploader) to update the DAFNI model. The workflows trigger on the creation of a new release tag which follows [semantic versioning](https://semver.org/) and takes the format `vx.y.z` where `x` is a major release, `y` a minor release, and `z` a patch release.
+The model can be deployed to DAFNi using GitHub Actions. The relevant workflows are built into the model repository and use the [DAFNI Model Uploader Action](https://github.com/dafnifacility/dafni-model-uploader) to update the DAFNI model. The workflows trigger on the creation of a new release tag which follows [semantic versioning](https://semver.org/) and takes the format `vx.y.z` where `x` is a major release, `y` a minor release, and `z` a patch release.
 
 The DAFNI model upload process is prone to failing, often during model ingestion, in which case a deployment action will show a failed status. Such deployment failures might be a result of a DAFNI timeout, or there might be a problem with the model build. It is possible to re-run the action in GitHub if it is evident that the failure is as a result of a DAFNI timeout. However, deployment failures caused by programming errors (e.g. an error in the model definition file) that are fixed as part of the deployment process will **not** be included in the tagged release! It is thus best practice in case of a deployment failure always to delete the version tag and to go through the release process again, re-creating the version tag and re-triggering the workflows.
 
