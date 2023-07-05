@@ -1,4 +1,4 @@
-name: Upload SHETRAN prepare to DAFNI
+name: Upload Docker image to DAFNI
 
 on:
   push:
