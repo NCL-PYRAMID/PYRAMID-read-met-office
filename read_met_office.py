@@ -457,12 +457,18 @@ def download(start_date, end_date, folder_path, bbox, delete=True):
 # TODO: ### to change - should be DAFNI model parameters ###
 ###############################################################################
 
-# Dates for files 
-start_date = pd.to_datetime("2023-06-20")
-end_date = pd.to_datetime("2023-06-30")
+# Dates for files
+start_date = os.getenv("RUN_START_DATE", "2023-06-20")
+end_date = os.getenv("RUN_END_DATE", "2023-06-30")
+start_date = pd.to_datetime(start_date)
+end_date = pd.to_datetime(end_date)
 
-# Bounding box for data 
-e_l, n_l, e_u, n_u = [355000, 534000, 440000, 609000]
+# Bounding box for data
+# e_l, n_l, e_u, n_u = [355000, 534000, 440000, 609000]
+e_l = os.getenv("BB_E_L", 355000)
+n_l = os.getenv("BB_N_L", 534000)
+e_u = os.getenv("BB_E_U", 440000)
+n_u = os.getenv("BB_N_U", 609000)
 bbox = [e_l, e_u, n_l, n_u]
 
 
@@ -477,7 +483,8 @@ if __name__ == "__main__":
 
     # Output folder to save files
     root_path = os.getenv("DATA_PATH", "./data")
-    output_path = os.path.join(root_path, "MET")
+    output_path = os.path.join(root_path, "outputs")
+    output_path = os.path.join(output_path, "MET")
     os.makedirs(output_path, exist_ok=True)
     
     output_path_15min = os.path.join(output_path, "15min")
@@ -495,6 +502,7 @@ if __name__ == "__main__":
     ###########################################################################
 
     # Download and clip files (not this will take a while)
+    print("output_path = " + output_path)
     download(start_date, end_date, output_path, bbox, delete=True)
 
     # Change temporal resolution of data

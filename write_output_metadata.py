@@ -14,15 +14,14 @@ import datetime
 # Paths
 ###############################################################################
 # Setup base path
-platform = os.getenv("READ_EXTERNAL_ENV")
+platform = os.getenv("READ_MET_OFFICE_ENV")
 if platform=="docker":
     data_path = os.getenv("DATA_PATH", "/data")
 else:
     data_path = os.getenv("DATA_PATH", "./data")
 
 # INPUT paths
-step_in_path = data_path / pathlib.Path("inputs")
-in_path = data_path / pathlib.Path("stage_one") / pathlib.Path("outputs")
+in_path = data_path / pathlib.Path("inputs")
 
 # OUTPUT paths
 out_path = data_path / pathlib.Path("outputs")
@@ -31,8 +30,8 @@ out_path = data_path / pathlib.Path("outputs")
 ###############################################################################
 # Metadata definition
 ###############################################################################
-app_title = "pyramid-read-external"
-app_description = "Default dataslot test output"
+app_title = "pyramid-read-met-office"
+app_description = "Met Office CEDA C-band radar rainfall data"
 metadata = f"""{{
   "@context": ["metadata-v1"],
   "@type": "dcat:Dataset",
@@ -93,6 +92,6 @@ metadata = f"""{{
 ###############################################################################
 # Write metadata file
 ###############################################################################
-with open(os.path.join(out_path, 'metadata.json'), 'w') as f:
+with open(os.path.join(out_path, 'MET', 'metadata.json'), 'w') as f:
     f.write(metadata)
 
