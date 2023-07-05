@@ -48,11 +48,24 @@ spec:
 
       - name: READ_MODE
         title: Model reading mode
-        description: >
-        This parameter dictates whether the model should read from the API, or from a pre-prepared testing data set.
+        description: This parameter dictates whether the model should read from the API, or from a pre-prepared testing data set.
         type: boolean
         default: true
         required: false
+
+      - name: CEDA_USERNAME
+        title: Username for CEDA account
+        description: A valid CEDA account username
+        type: string
+        default: false
+        required: true
+
+      - name: CEDA_PASSWORD
+        title: Password for CEDA account corresponding to CEDA_USERNAME
+        description: A valid CEDA account password corresponding to CEDA_USERNAME
+        type: string
+        default: false
+        required: true
 
   outputs:
     datasets:

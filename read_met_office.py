@@ -17,6 +17,7 @@ import ftplib
 import gzip
 import tarfile
 import shutil
+import tqdm
 
 
 ##########################  MET OFFICE NIMROD CODE  ###########################
@@ -371,31 +372,28 @@ def get_filenames(date_start, date_end, format='%Y-%m-%d %H:%M:%S'):
 def extract(file_from, bbox):
     
     tar_files = [os.path.join(file_from, ff) for ff in os.listdir(file_from) if ff.endswith(".tar")]
-    print("---> extract: file_from = " + file_from)
     
     if len(tar_files) > 0:
         
         dates = []
         arrs = []
 
-        for tf in tar_files:
+        for tf in tqdm.tqdm(tar_files):
 
             with tarfile.open(tf) as tar:
                 tar.extractall(file_from)
 
                 gz_files = [os.path.join(file_from, ff) for ff in os.listdir(file_from) if ff.endswith(".gz")]
 
-                for g in gz_files:
+                for g in tqdm.tqdm(gz_files):
 
                     with gzip.open(g, 'rb') as f_in:
-                        print("---> extract: g = " + g)
-                        print("---> extract: os.path.splitext(g)[0] = " + os.path.splitext(g)[0])
                         with open(os.path.splitext(g)[0], 'wb') as f_out:
                             shutil.copyfileobj(f_in, f_out)
 
                 dat_files = [ff for ff in os.listdir(file_from) if ff.endswith(".dat")]
 
-                for df in dat_files:
+                for df in tqdm.tqdm(dat_files):
 
                     try:
                         nf = nimrod_file(os.path.join(file_from, df), 
@@ -424,7 +422,7 @@ def download(start_date, end_date, folder_path, bbox, delete=True):
     # Get file names to download 
     file_names, years = get_filenames(start_date, end_date)
     
-    for year in list(set(years)):
+    for year in tqdm.tqdm(list(set(years))):
         file_dir = BAD_PATH_FIXME + str(year) + '/'
 
         # login to FTP
@@ -433,7 +431,7 @@ def download(start_date, end_date, folder_path, bbox, delete=True):
         # Directory of files to save
         f.cwd(file_dir)
 
-        for file in np.array(file_names)[years == year]:
+        for file in tqdm.tqdm(np.array(file_names)[years == year]):
             
             try:
                 # Copies data from ftp server
@@ -500,7 +498,7 @@ if __name__ == "__main__":
     download(start_date, end_date, output_path, bbox, delete=True)
 
     # Change temporal resolution of data
-    timestamp_series = pd.to_datetime(pd.read_csv(os.path.join(output_path, "timestamp.csv"))["0"])
+    timestamp_series = pd.to_datetime(pd.read_csv(os.path.join(output_path, "timestamp.csv"))["0"], utc=True)
     arrs = np.load(os.path.join(output_path, "arrays.npy"))
 
     # New data resolution in seconds
