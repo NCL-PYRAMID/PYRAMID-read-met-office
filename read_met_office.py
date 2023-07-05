@@ -1,19 +1,29 @@
+###############################################################################
+# Read Met Office radar rainfall data for DAFNI workflow
+# Amy Green, Robin Wardle
+# May 2022
+###############################################################################
+
+###############################################################################
+# Python libraries
+###############################################################################
 import sys
 import struct
 import array
-from os.path import join, exists
 import os
 import numpy as np
-import tempfile
-import h5py
 import pandas as pd
-import os
 import ftplib
 import gzip
 import tarfile
-from os.path import join
 import shutil
-############################    MET OFFICE CODE    ############################
+
+
+##########################  MET OFFICE NIMROD CODE  ###########################
+#
+# This is a direct copy of https://github.com/richard-thomas/MetOffice_NIMROD
+# TODO: It should be replaced by including the above replo as a subproject
+#
 
 class Nimrod:
     """Reading, querying and processing of NIMROD format rainfall data files."""
@@ -284,10 +294,10 @@ class Nimrod:
         outfile.close()
 
 
-# -------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Handle if called as a command line script
 # (And as an example of how to invoke class methods from an importing module)
-# -------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def nimrod_file(file_in, file_out=None, bbox=None, query=False, extract=False):
     try:
@@ -322,7 +332,21 @@ def nimrod_file(file_in, file_out=None, bbox=None, query=False, extract=False):
         rainfall_data.extract_asc(open(file_out, 'w'))
     return rainfall_data
 
-################################### MY HELPER FUNCTIONS ######################################
+#
+#
+############################ END OF NIMROD CODE ###############################
+
+###############################################################################
+# CONSTANTS
+###############################################################################
+CEDA_FTP_URL = "ftp.ceda.ac.uk"
+BAD_PATH_FIXME = '/badc/ukmo-nimrod/data/composite/uk-1km/'
+DATE_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+
+###############################################################################
+# Helper functions
+###############################################################################
 
 # Function to get file names for input
 def get_filenames(date_start, date_end, format='%Y-%m-%d %H:%M:%S'):
@@ -346,7 +370,8 @@ def get_filenames(date_start, date_end, format='%Y-%m-%d %H:%M:%S'):
 # Function to extract data
 def extract(file_from, bbox):
     
-    tar_files = [join(file_from, ff) for ff in os.listdir(file_from) if ff.endswith(".tar")]
+    tar_files = [os.path.join(file_from, ff) for ff in os.listdir(file_from) if ff.endswith(".tar")]
+    print("---> extract: file_from = " + file_from)
     
     if len(tar_files) > 0:
         
@@ -358,12 +383,14 @@ def extract(file_from, bbox):
             with tarfile.open(tf) as tar:
                 tar.extractall(file_from)
 
-                gz_files = [join(file_from, ff) for ff in os.listdir(file_from) if ff.endswith(".gz")]
+                gz_files = [os.path.join(file_from, ff) for ff in os.listdir(file_from) if ff.endswith(".gz")]
 
                 for g in gz_files:
 
                     with gzip.open(g, 'rb') as f_in:
-                        with open(join(file_from, os.path.splitext(g)[0]), 'wb') as f_out:
+                        print("---> extract: g = " + g)
+                        print("---> extract: os.path.splitext(g)[0] = " + os.path.splitext(g)[0])
+                        with open(os.path.splitext(g)[0], 'wb') as f_out:
                             shutil.copyfileobj(f_in, f_out)
 
                 dat_files = [ff for ff in os.listdir(file_from) if ff.endswith(".dat")]
@@ -371,8 +398,8 @@ def extract(file_from, bbox):
                 for df in dat_files:
 
                     try:
-                        nf = nimrod_file(join(file_from, df), 
-                                    #join(file_to, df.split(".")[0] + ".asc"), 
+                        nf = nimrod_file(os.path.join(file_from, df), 
+                                    #os.path.join(file_to, df.split(".")[0] + ".asc"), 
                                     bbox=bbox)#, 
                                     #extract=True)
                             
@@ -390,7 +417,7 @@ def extract(file_from, bbox):
 def download(start_date, end_date, folder_path, bbox, delete=True):
     
     # If new directory doesn't exist make it
-    temp_dir = join(folder_path, "temp")
+    temp_dir = os.path.join(folder_path, "temp")
     if not os.path.isdir(temp_dir):
         os.mkdir(temp_dir)
     
@@ -398,10 +425,10 @@ def download(start_date, end_date, folder_path, bbox, delete=True):
     file_names, years = get_filenames(start_date, end_date)
     
     for year in list(set(years)):
-        file_dir = '/badc/ukmo-nimrod/data/composite/uk-1km/' + str(year) + '/'
+        file_dir = BAD_PATH_FIXME + str(year) + '/'
 
         # login to FTP
-        f = ftplib.FTP("ftp.ceda.ac.uk", username, password)
+        f = ftplib.FTP(CEDA_FTP_URL, username, password)
 
         # Directory of files to save
         f.cwd(file_dir)
@@ -410,7 +437,7 @@ def download(start_date, end_date, folder_path, bbox, delete=True):
             
             try:
                 # Copies data from ftp server
-                f.retrbinary("RETR %s" % file, open(join(temp_dir, file), "wb").write)
+                f.retrbinary("RETR %s" % file, open(os.path.join(temp_dir, file), "wb").write)
             except:
                 print(file, " did not work.")
                 
@@ -418,32 +445,21 @@ def download(start_date, end_date, folder_path, bbox, delete=True):
     dates, arrs, xs, ys = extract(temp_dir, bbox)
     
     # Save data (horrible way to save it)
-    pd.Series(dates).to_csv(join(folder_path, "timestamp.csv"), index=False)
-    np.save(join(folder_path, "arrays.npy"), np.array(arrs) / 32)
-    xs.to_csv(join(folder_path, "coords_x.csv"), index=False)
-    ys.to_csv(join(folder_path, "coords_y.csv"), index=False)
+    pd.Series(dates).to_csv(os.path.join(folder_path, "timestamp.csv"), index=False)
+    np.save(os.path.join(folder_path, "arrays.npy"), np.array(arrs) / 32)
+    xs.to_csv(os.path.join(folder_path, "coords_x.csv"), index=False)
+    ys.to_csv(os.path.join(folder_path, "coords_y.csv"), index=False)
     
     if delete:
         shutil.rmtree(temp_dir)
-################################### PARAMETERS TO CHANGE ######################################
 
-# output folder to save files
-root_path = r"./save"
-output_path = join(root_path, "MET")
-if not exists(output_path):
-    os.mkdir(output_path)
 
-outpath_15min = join(output_path, "15min")
-if not exists(outpath_15min):
-    os.mkdir(outpath_15min)
-    
-# CEDA username and password
-username = os.getenv("CEDA_USERNAME")
-password = os.getenv("CEDA_PASSWORD")
-if username == None or password == None:
-        raise EnvironmentError("No CEDA credentials provided")
+###############################################################################
+# Inputs
+# TODO: ### to change - should be DAFNI model parameters ###
+###############################################################################
 
-# dates for files 
+# Dates for files 
 start_date = pd.to_datetime("2023-06-20")
 end_date = pd.to_datetime("2023-06-30")
 
@@ -452,42 +468,68 @@ e_l, n_l, e_u, n_u = [355000, 534000, 440000, 609000]
 bbox = [e_l, e_u, n_l, n_u]
 
 
-##############################################################################################
+if __name__ == "__main__":
+    """
+    Main function
+    """
 
-# download and clip files (not this will take a while)
-download(start_date, end_date, output_path, bbox, delete=True)
+    ###########################################################################
+    # Parameters
+    ###########################################################################
 
-# change temporal resolution of data
-timestamp_series = pd.to_datetime(pd.read_csv(join(output_path, "timestamp.csv"))["0"])
-arrs = np.load(join(output_path, "arrays.npy"))
+    # Output folder to save files
+    root_path = os.getenv("DATA_PATH", "./data")
+    output_path = os.path.join(root_path, "MET")
+    os.makedirs(output_path, exist_ok=True)
+    
+    output_path_15min = os.path.join(output_path, "15min")
+    os.makedirs(output_path_15min, exist_ok=True)
 
-# new data resolution in seconds
-delta_t = str(15*60) + "s"
+    # CEDA username and password
+    username = os.getenv("CEDA_USERNAME")
+    password = os.getenv("CEDA_PASSWORD")
+    if username == None or password == None:
+        raise EnvironmentError("No CEDA credentials provided")
 
-start_date = timestamp_series.min().round(delta_t)
-end_date = timestamp_series.max().round(delta_t)
 
-new_timestamp = pd.date_range(
-    pd.to_datetime(start_date),
-    pd.to_datetime(end_date) + pd.Timedelta(1, "d"),
-    freq=str(15 * 60) + "s", 
-    tz="UTC"
-)
+    ###########################################################################
+    # Processing
+    ###########################################################################
 
-new_arrays = np.full((new_timestamp.shape[0], arrs.shape[1], arrs.shape[2]), np.nan)
+    # Download and clip files (not this will take a while)
+    download(start_date, end_date, output_path, bbox, delete=True)
 
-for i, t in enumerate(new_timestamp):
+    # Change temporal resolution of data
+    timestamp_series = pd.to_datetime(pd.read_csv(os.path.join(output_path, "timestamp.csv"))["0"])
+    arrs = np.load(os.path.join(output_path, "arrays.npy"))
 
-    cond = (timestamp_series >= t) & (timestamp_series < t + pd.Timedelta(delta_t))
-    subset = arrs[cond]
-    if subset.shape[0] > 0:
-        new_arrays[i] = np.nanmean(subset, axis=0)
+    # New data resolution in seconds
+    delta_t = str(15*60) + "s"
 
-xs = pd.read_csv(join(output_path, "coords_x.csv"))
-xs.to_csv(join(outpath_15min, "coords_x.csv"), index=False)
+    start_date = timestamp_series.min().round(delta_t)
+    end_date = timestamp_series.max().round(delta_t)
 
-ys = pd.read_csv(join(output_path, "coords_y.csv"))
-ys.to_csv(join(outpath_15min, "coords_y.csv"), index=False)
+    new_timestamp = pd.date_range(
+        pd.to_datetime(start_date),
+        pd.to_datetime(end_date) + pd.Timedelta(1, "d"),
+        freq=str(15 * 60) + "s", 
+        tz="UTC"
+    )
 
-pd.Series(new_timestamp).to_csv(join(outpath_15min, "timestamp.csv"), index=False)
-np.save(join(outpath_15min, "arrays.npy"), new_arrays)
+    new_arrays = np.full((new_timestamp.shape[0], arrs.shape[1], arrs.shape[2]), np.nan)
+
+    for i, t in enumerate(new_timestamp):
+
+        cond = (timestamp_series >= t) & (timestamp_series < t + pd.Timedelta(delta_t))
+        subset = arrs[cond]
+        if subset.shape[0] > 0:
+            new_arrays[i] = np.nanmean(subset, axis=0)
+
+    xs = pd.read_csv(os.path.join(output_path, "coords_x.csv"))
+    xs.to_csv(os.path.join(output_path_15min, "coords_x.csv"), index=False)
+
+    ys = pd.read_csv(os.path.join(output_path, "coords_y.csv"))
+    ys.to_csv(os.path.join(output_path_15min, "coords_y.csv"), index=False)
+
+    pd.Series(new_timestamp).to_csv(os.path.join(output_path_15min, "timestamp.csv"), index=False)
+    np.save(os.path.join(output_path_15min, "arrays.npy"), new_arrays)
