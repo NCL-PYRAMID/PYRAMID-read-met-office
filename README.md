@@ -113,7 +113,7 @@ The `pyramid-read-met-office.tar.gz` Docker image and accompanying DAFNI model d
 As of 05/07/2023 the read-met-office DAFNI parent model UUID is
 | Model | UUID |
 | --- | --- |
-| read-met-office | (TBC)) |
+| read-met-office | c5381b8f-d682-4ab7-8092-63a2bc1088db |
 
 #### CI/CD with GitHub Actions
 The model can be deployed to DAFNi using GitHub Actions. The relevant workflows are built into the model repository and use the [DAFNI Model Uploader Action](https://github.com/dafnifacility/dafni-model-uploader) to update the DAFNI model. The workflows trigger on the creation of a new release tag which follows [semantic versioning](https://semver.org/) and takes the format `vx.y.z` where `x` is a major release, `y` a minor release, and `z` a patch release.
