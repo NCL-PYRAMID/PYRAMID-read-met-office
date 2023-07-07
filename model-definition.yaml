@@ -1,7 +1,7 @@
 kind: M
 api_version: v1beta2
 metadata:
-  display_name: PYRAMID <model> read met office
+  display_name: PYRAMID <model> Read Met Office Radar Rainfall
   name: pyramid-read-met-office
   publisher: PYRAMID
   summary: PYRAMID DAFNI model for reading radar rainfall from CEDA
