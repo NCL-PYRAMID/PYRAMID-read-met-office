@@ -102,9 +102,10 @@ sudo rm -r data
 The model is containerised using Docker, and the image is _tar_'ed and _zip_'ed for uploading to DAFNI. Use the following commands in a *nix shell to accomplish this.
 
 ```
-docker build . -t pyramid-read-met-office -f Dockerfile
-docker save -o pyramid-read-met-office.tar pyramid-read-met-office:latest
-gzip pyramid-read-met-office.tar
+sudo docker build . -t pyramid-read-met-office -f Dockerfile
+sudo docker save -o pyramid-read-met-office.tar pyramid-read-met-office:latest
+sudo gzip pyramid-read-met-office.tar
+sudo chmod og+rw pyramid-read-met-office.tar.gz
 ```
 
 The `pyramid-read-met-office.tar.gz` Docker image and accompanying DAFNI model definition file `model-definition.yml` should be uploaded as new DAFNI models using the "Add model" facility at [https://facility.secure.dafni.rl.ac.uk/models/](https://facility.secure.dafni.rl.ac.uk/models/). Alternatively, the existing model can be updated manually in DAFNI by locating the relevant model through the DAFNI UI, selecting "Edit Model", uploading a new image and / or metadata file, and incrementing the semantic version number in the "Version Message" field appropriately.

@@ -67,12 +67,14 @@ spec:
         title: Username for CEDA account
         description: A valid CEDA account username
         type: string
+        default: Enter CEDA username
         required: true
 
       - name: CEDA_PASSWORD
         title: Password for CEDA account corresponding to CEDA_USERNAME
         description: A valid CEDA account password corresponding to CEDA_USERNAME
         type: string
+        default: Enter CEDA password
         required: true
 
   outputs:
@@ -80,4 +82,4 @@ spec:
       - name: PYRAMID <dataset> Met Office Rainfall Radar Data
         type: txt
         description: >
-        Rainfall radar data read from Met Office CEDA ftp://ftp.ceda.ac.uk
+          Rainfall radar data read from Met Office CEDA ftp://ftp.ceda.ac.uk
