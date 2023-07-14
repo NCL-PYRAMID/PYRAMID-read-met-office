@@ -595,4 +595,4 @@ if __name__ == "__main__":
     pd.Series(new_timestamp).to_csv(os.path.join(output_path_15min, "timestamp.csv"), index=False)
     np.save(os.path.join(output_path_15min, "arrays.npy"), new_arrays)
 
-    os.system("cd " + output_path + "; touch success" )
+    os.system("cd " + output_path + "; touch " + MET_SUCCESS_FILENAME)

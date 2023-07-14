@@ -11,6 +11,11 @@ import pathlib
 import datetime
 
 ##############################################################################
+# Constants
+###############################################################################
+METADATA_FILENAME = "metadata.json"
+
+##############################################################################
 # Paths
 ###############################################################################
 # Setup base path
@@ -25,6 +30,8 @@ in_path = data_path / pathlib.Path("inputs")
 
 # OUTPUT paths
 out_path = data_path / pathlib.Path("outputs")
+metadata_path = out_path / pathlib.Path("MET")
+os.makedirs(metadata_path, exist_ok=True)
 
 
 ###############################################################################
@@ -92,6 +99,6 @@ metadata = f"""{{
 ###############################################################################
 # Write metadata file
 ###############################################################################
-with open(os.path.join(out_path, 'MET', 'metadata.json'), 'w') as f:
+with open(metadata_path / pathlib.Path(METADATA_FILENAME), 'w') as f:
     f.write(metadata)
 
