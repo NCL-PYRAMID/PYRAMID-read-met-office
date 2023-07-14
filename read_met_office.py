@@ -18,6 +18,103 @@ import gzip
 import tarfile
 import shutil
 import tqdm
+import pathlib
+import logging
+
+
+###############################################################################
+# CONSTANTS
+###############################################################################
+MET_SUCCESS_FILENAME = "success"
+MET_LOG_FILENAME = "read_met_office.log"
+
+
+###############################################################################
+# Paths
+###############################################################################
+
+# CEDA username and password
+username = os.getenv("CEDA_USERNAME")
+password = os.getenv("CEDA_PASSWORD")
+if username == None or password == None:
+    raise EnvironmentError("No CEDA credentials provided")
+
+# Output paths to save files
+platform = os.getenv("READ_MET_OFFICE_ENV")
+if platform=="docker":
+    data_path = os.getenv("DATA_PATH", "/data")
+else:
+    data_path = os.getenv("DATA_PATH", "./data")
+output_path = os.path.join(data_path, "outputs")
+output_path = os.path.join(output_path, "MET")
+os.makedirs(output_path, exist_ok=True)
+output_path_15min = os.path.join(output_path, "15min")
+os.makedirs(output_path_15min, exist_ok=True)
+
+# Reset the success and log files (if e.g. running locally)
+if os.path.isfile(os.path.join(output_path, MET_SUCCESS_FILENAME)):
+    os.remove(os.path.join(output_path, MET_SUCCESS_FILENAME))
+if os.path.isfile(os.path.join(output_path, MET_LOG_FILENAME)):
+    os.remove(os.path.join(output_path, MET_LOG_FILENAME))
+
+
+###############################################################################
+# Logging
+###############################################################################
+# Configure logging
+logging.basicConfig()
+logging.root.setLevel(logging.INFO)
+
+# Logging instance
+logger = logging.getLogger(pathlib.PurePath(__file__).name)
+logger.propagate = False
+
+# Console messaging
+console_formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+console_handler = logging.StreamHandler(stream=sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(console_formatter)
+logger.addHandler(console_handler)
+
+# File logging
+file_formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
+file_handler = logging.FileHandler(output_path / pathlib.Path(MET_LOG_FILENAME))
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+
+logger.info("Logger initialised")
+
+# Some additional logging info
+logger.info("data_path = {}".format(data_path))
+logger.info("output_path = {}".format(output_path))
+
+
+
+###############################################################################
+# Other Parameters
+#   Remember that parameters are passed as environment variables,
+#   i.e. they are strings and will need to be converted
+###############################################################################
+
+# Dates for files
+start_date = os.getenv("RUN_START_DATE", "2023-06-20")
+end_date = os.getenv("RUN_END_DATE", "2023-06-30")
+start_date = pd.to_datetime(start_date)
+end_date = pd.to_datetime(end_date)
+
+# Bounding box for data
+# e_l, n_l, e_u, n_u = [355000, 534000, 440000, 609000]
+try:
+    e_l = int(os.getenv("BB_E_L", "355000"))
+    n_l = int(os.getenv("BB_N_L", "534000"))
+    e_u = int(os.getenv("BB_E_U", "440000"))
+    n_u = int(os.getenv("BB_N_U", "609000"))
+    bbox = [e_l, e_u, n_l, n_u]
+except (TypeError, ValueError, Exception) as e:
+    logger.error("Error converting environmental parameters: {}".format(e))
+    raise
+
 
 
 ##########################  MET OFFICE NIMROD CODE  ###########################
@@ -343,6 +440,7 @@ def nimrod_file(file_in, file_out=None, bbox=None, query=False, extract=False):
 CEDA_FTP_URL = "ftp.ceda.ac.uk"
 BAD_PATH_FIXME = '/badc/ukmo-nimrod/data/composite/uk-1km/'
 DATE_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+SUCCESS_FILENAME = 'success'
 
 
 ###############################################################################
@@ -386,7 +484,6 @@ def extract(file_from, bbox):
                 gz_files = [os.path.join(file_from, ff) for ff in os.listdir(file_from) if ff.endswith(".gz")]
 
                 for g in tqdm.tqdm(gz_files):
-
                     with gzip.open(g, 'rb') as f_in:
                         with open(os.path.splitext(g)[0], 'wb') as f_out:
                             shutil.copyfileobj(f_in, f_out)
@@ -394,7 +491,6 @@ def extract(file_from, bbox):
                 dat_files = [ff for ff in os.listdir(file_from) if ff.endswith(".dat")]
 
                 for df in tqdm.tqdm(dat_files):
-
                     try:
                         nf = nimrod_file(os.path.join(file_from, df), 
                                     #os.path.join(file_to, df.split(".")[0] + ".asc"), 
@@ -405,9 +501,9 @@ def extract(file_from, bbox):
                         ys = pd.Series(np.linspace(nf.y_bottom, nf.y_top, nf.nrows))
                         dates.append(pd.to_datetime(df.split("_")[-2]))
                         arrs.append(np.array(nf.data).reshape(nf.nrows, nf.ncols))
-
                     except:
-                        print("Not worked for ", df)
+                        #raise Exception("Extraction failed for ", df)
+                        logger.error("Extraction failed for {}".format(df))
 
     return [dates, arrs, xs, ys]
 
@@ -437,7 +533,8 @@ def download(start_date, end_date, folder_path, bbox, delete=True):
                 # Copies data from ftp server
                 f.retrbinary("RETR %s" % file, open(os.path.join(temp_dir, file), "wb").write)
             except:
-                print(file, " did not work.")
+                logger.error("Download failed for {}".format(file))
+                #raise Exception("Download failed for ", file)
                 
     # Extracts and clips data
     dates, arrs, xs, ys = extract(temp_dir, bbox)
@@ -452,57 +549,16 @@ def download(start_date, end_date, folder_path, bbox, delete=True):
         shutil.rmtree(temp_dir)
 
 
-###############################################################################
-# Inputs
-# TODO: ### to change - should be DAFNI model parameters ###
-###############################################################################
-
-# Dates for files
-start_date = os.getenv("RUN_START_DATE", "2023-06-20")
-end_date = os.getenv("RUN_END_DATE", "2023-06-30")
-start_date = pd.to_datetime(start_date)
-end_date = pd.to_datetime(end_date)
-
-# Bounding box for data
-# e_l, n_l, e_u, n_u = [355000, 534000, 440000, 609000]
-e_l = os.getenv("BB_E_L", 355000)
-n_l = os.getenv("BB_N_L", 534000)
-e_u = os.getenv("BB_E_U", 440000)
-n_u = os.getenv("BB_N_U", 609000)
-bbox = [e_l, e_u, n_l, n_u]
-
-
 if __name__ == "__main__":
     """
     Main function
     """
 
     ###########################################################################
-    # Parameters
-    ###########################################################################
-
-    # Output folder to save files
-    root_path = os.getenv("DATA_PATH", "./data")
-    output_path = os.path.join(root_path, "outputs")
-    output_path = os.path.join(output_path, "MET")
-    os.makedirs(output_path, exist_ok=True)
-    
-    output_path_15min = os.path.join(output_path, "15min")
-    os.makedirs(output_path_15min, exist_ok=True)
-
-    # CEDA username and password
-    username = os.getenv("CEDA_USERNAME")
-    password = os.getenv("CEDA_PASSWORD")
-    if username == None or password == None:
-        raise EnvironmentError("No CEDA credentials provided")
-
-
-    ###########################################################################
     # Processing
     ###########################################################################
 
     # Download and clip files (not this will take a while)
-    print("output_path = " + output_path)
     download(start_date, end_date, output_path, bbox, delete=True)
 
     # Change temporal resolution of data
@@ -525,7 +581,6 @@ if __name__ == "__main__":
     new_arrays = np.full((new_timestamp.shape[0], arrs.shape[1], arrs.shape[2]), np.nan)
 
     for i, t in enumerate(new_timestamp):
-
         cond = (timestamp_series >= t) & (timestamp_series < t + pd.Timedelta(delta_t))
         subset = arrs[cond]
         if subset.shape[0] > 0:
@@ -539,3 +594,5 @@ if __name__ == "__main__":
 
     pd.Series(new_timestamp).to_csv(os.path.join(output_path_15min, "timestamp.csv"), index=False)
     np.save(os.path.join(output_path_15min, "arrays.npy"), new_arrays)
+
+    os.system("cd " + output_path + "; touch success" )
